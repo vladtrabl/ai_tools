@@ -3,7 +3,9 @@
     "allow": [
       "Bash(git log:*)",
       "Bash(wc:*)",
-      "WebFetch(domain:raw.githubusercontent.com)"
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "Bash(head:*)",
+      "Bash(grep -r \"---\" \"C:\\\\Users\\\\VladGorshkov\\\\Desktop\\\\Sources\\\\ai_tools\\\\claude\\\\agents\" -A 5)"
     ]
   }
 }

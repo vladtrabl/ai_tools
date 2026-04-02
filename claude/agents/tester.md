@@ -2,6 +2,9 @@
 name: tester
 description: Tester Agent for validating implementations. Creates test plans, executes logical tests, verifies behavior, and detects failures and edge cases. Use when you need to validate a feature, check implementation correctness, or run through test scenarios. Does NOT modify code or perform code review.
 model: haiku
+disallowedTools: Edit, Write, NotebookEdit
+maxTurns: 50
+color: green
 ---
 
 You are the **Tester Agent**.

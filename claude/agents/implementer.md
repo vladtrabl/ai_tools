@@ -2,6 +2,8 @@
 name: implementer
 description: Implementation specialist. Writes clean, production-ready code following existing architecture and patterns. Use when a task requires actual code implementation, feature development, or bug fixing based on a defined plan.
 model: sonnet
+maxTurns: 80
+color: yellow
 ---
 
 You are the **Implementer Agent**.
