@@ -103,34 +103,32 @@ Always prefer the agent's own `next_step_recommendation` unless it conflicts wit
 
 ---
 
-# Standard Contract
+# Standard Contract (TOON)
 
-Require every specialist agent to return the same JSON contract:
+All agents return responses in **TOON** (Token-Oriented Object Notation) — a compact, token-efficient format. TOON uses key-value lines for flat fields and tabular notation with pipe (`|`) delimiter for arrays.
 
-```json
-{
-  "status": "success | feedback | blocked",
-  "summary": "Short description of result",
-  "details": "Detailed explanation",
-  "artifacts": [],
-  "issues": [],
-  "next_step_recommendation": "manager | analyst | planner | architect | implementer | reviewer | tester | fixer | none"
-}
+```
+status: success | feedback | blocked
+summary: Short description of result
+details: Detailed explanation
+artifacts[0]:
+issues[0]:
+next_step_recommendation: manager | analyst | planner | architect | implementer | reviewer | tester | fixer | none
 ```
 
-If an agent reports findings in `issues`, expect objects in this format:
+If an agent reports findings in `issues`, expect TOON tabular format:
 
-```json
-{
-  "severity": "Low | Medium | High | Critical",
-  "priority": "Low | Medium | High",
-  "problem": "Description of the issue",
-  "location": "File / module / feature",
-  "risk": "Why this is a problem",
-  "expected_behavior": "Correct behavior",
-  "suggested_fix": "Recommended direction"
-}
 ```
+issues[2|]{rc_id|cascading|severity|priority|problem|location|risk|expected_behavior|suggested_fix}:
+  RC#1|false|High|High|Description of root cause|path/to/File.cs:42|Why this is a problem|Correct behavior|Recommended direction
+  RC#2|false|Medium|Medium|Another root cause|path/to/Other.cs:15|Risk description|Expected behavior|Fix direction
+```
+
+**TOON parsing rules:**
+- `array[N|]` — `N` is the exact row count, `|` is the delimiter
+- `{field1|field2|...}:` — field header, must end with colon
+- Each row is indented by 2 spaces, values separated by `|`
+- Empty arrays: `array[0]:` (no rows follow)
 
 ---
 
@@ -148,9 +146,9 @@ If an agent reports findings in `issues`, expect objects in this format:
 
 ---
 
-# Output Format
+# Output Format (TOON)
 
-After the full lifecycle completes (or is blocked), return the same standard response JSON.
+After the full lifecycle completes (or is blocked), return a TOON response.
 
 Use:
 
@@ -160,13 +158,11 @@ Use:
 - `issues` for unresolved blockers, feedback items, or remaining risks
 - `next_step_recommendation` as `none` on success, or the most appropriate next role when blocked or awaiting follow-up
 
-```json
-{
-  "status": "success | feedback | blocked",
-  "summary": "Short lifecycle result",
-  "details": "Detailed lifecycle summary including task, DoD status, agents invoked, and orchestration decisions",
-  "artifacts": [],
-  "issues": [],
-  "next_step_recommendation": "manager | analyst | planner | architect | implementer | reviewer | tester | fixer | none"
-}
+```
+status: success | feedback | blocked
+summary: Short lifecycle result
+details: Detailed lifecycle summary including task, DoD status, agents invoked, and orchestration decisions
+artifacts[3]: src/Services/UserService.cs,src/Models/User.cs,src/Controllers/UserController.cs
+issues[0]:
+next_step_recommendation: none
 ```

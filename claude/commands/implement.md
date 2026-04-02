@@ -110,36 +110,51 @@ When Tester reports multiple issues:
 
 ---
 
-## Standard Agent Response Contract
+## Standard Agent Response Contract (TOON)
 
-Require every agent to return:
+All agents return responses in **TOON** (Token-Oriented Object Notation) — a compact, token-efficient format. TOON uses key-value lines for flat fields and tabular notation with pipe (`|`) delimiter for arrays.
 
-```json
-{
-  "status": "success | feedback | blocked",
-  "summary": "Short description of result",
-  "details": "Detailed explanation",
-  "artifacts": [],
-  "issues": [],
-  "next_step_recommendation": "analyst | planner | architect | implementer | reviewer | tester | fixer | none"
-}
+Standard response structure:
+
+```
+status: success | feedback | blocked
+summary: Short description of result
+details: Detailed explanation
+artifacts[0]:
+issues[0]:
+next_step_recommendation: analyst | planner | architect | implementer | reviewer | tester | fixer | none
 ```
 
-Tester issues include `rc_id` and `cascading`:
+Tester issues include `rc_id` and `cascading` in tabular format:
 
-```json
-{
-  "rc_id": "RC#1",
-  "cascading": false,
-  "severity": "Low | Medium | High | Critical",
-  "priority": "Low | Medium | High",
-  "problem": "Description of the root cause",
-  "location": "path/to/File.cs:42",
-  "risk": "Why this is a problem",
-  "expected_behavior": "Correct behavior",
-  "suggested_fix": "Recommended direction"
-}
 ```
+issues[2|]{rc_id|cascading|severity|priority|problem|location|risk|expected_behavior|suggested_fix}:
+  RC#1|false|High|High|Description of root cause|path/to/File.cs:42|Why this is a problem|Correct behavior|Recommended direction
+  RC#2|false|Medium|Medium|Another root cause|path/to/Other.cs:15|Risk description|Expected behavior|Fix direction
+```
+
+Reviewer/Planner/Fixer issues use the same tabular format without `rc_id` and `cascading`:
+
+```
+issues[1|]{severity|priority|problem|location|risk|expected_behavior|suggested_fix}:
+  High|High|Description of the issue|path/to/File.cs:42|Why this is a problem|Correct behavior|Recommended direction
+```
+
+Planner artifacts use tabular format for execution steps:
+
+```
+artifacts[3|]{step|description|agent|expected_result|parallel|parallel_group}:
+  1|Analyze requirements|analyst|Task understanding|false|null
+  2|Design architecture|architect|Component diagram|false|null
+  3|Implement feature|implementer|Working code|false|null
+```
+
+**TOON parsing rules:**
+- `array[N|]` — `N` is the exact row count, `|` is the delimiter
+- `{field1|field2|...}:` — field header, must end with colon
+- Each row is indented by 2 spaces, values separated by `|`
+- Empty arrays: `array[0]:` (no rows follow)
+- Primitive arrays: `artifacts[2]: file1.cs,file2.cs`
 
 ---
 

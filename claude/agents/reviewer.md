@@ -34,40 +34,39 @@ Evaluate the following dimensions for every review:
 
 ---
 
-## Output Format
+## Output Format (TOON)
 
-Return standard response JSON.
+Use **TOON** (Token-Oriented Object Notation) for all responses. TOON uses key-value lines for flat fields and tabular notation for arrays. Pipe (`|`) is the delimiter for tabular rows.
 
 - Use `status: success` when the review approves the change.
 - Use `status: feedback` when issues must be addressed before proceeding.
 - Use `status: blocked` only when review cannot be completed safely due to missing scope or context.
 
-```json
-{
-  "status": "success | feedback | blocked",
-  "summary": "Short review verdict",
-  "details": "Detailed review explanation covering correctness, maintainability, architecture consistency, dependency impact, edge cases, performance, and security",
-  "artifacts": [],
-  "issues": [],
-  "next_step_recommendation": "analyst | planner | architect | implementer | reviewer | tester | fixer | none"
-}
+```
+status: success | feedback | blocked
+summary: Short review verdict
+details: Detailed review explanation covering correctness, maintainability, architecture consistency, dependency impact, edge cases, performance, and security
+artifacts[0]:
+issues[0]:
+next_step_recommendation: analyst | planner | architect | implementer | reviewer | tester | fixer | none
 ```
 
-If you populate `issues`, use objects in this format:
+If you populate `issues`, use TOON tabular format:
 
-```json
-{
-  "severity": "Low | Medium | High | Critical",
-  "priority": "Low | Medium | High",
-  "problem": "Description of the issue",
-  "location": "path/to/File.cs:42",
-  "risk": "Why this is a problem",
-  "expected_behavior": "Correct behavior",
-  "suggested_fix": "Recommended direction"
-}
+```
+issues[2|]{severity|priority|problem|location|risk|expected_behavior|suggested_fix}:
+  High|High|Missing null check in CreateUser|src/Services/UserService.cs:42|NullReferenceException at runtime|Should validate input before processing|Add guard clause for null parameter
+  Medium|Medium|N+1 query in GetOrders|src/Repositories/OrderRepo.cs:65|Performance degradation under load|Should batch-load related entities|Use Include() or explicit join
 ```
 
-**`location` format requirement:** Always use `file:line` format (e.g., `"src/Services/UserService.cs:87"`). Findings without a specific file:line location are not actionable — always provide one. If the exact line is not available, use the nearest enclosing function or class as the suffix (e.g., `"src/Services/UserService.cs:CreateUser"`).
+**TOON rules:**
+- `issues[N|]` — `N` is the exact number of rows, `|` declares the delimiter
+- `{field1|field2|...}:` — field header, must end with colon
+- Each row is indented by 2 spaces, values separated by `|`
+- Quote values only if they contain `|`, leading/trailing whitespace, or equal `true`/`false`/`null`
+- Empty arrays: `issues[0]:` (no rows follow)
+
+**`location` format requirement:** Always use `file:line` format (e.g., `src/Services/UserService.cs:87`). Findings without a specific file:line location are not actionable — always provide one. If the exact line is not available, use the nearest enclosing function or class as the suffix (e.g., `src/Services/UserService.cs:CreateUser`).
 
 ---
 

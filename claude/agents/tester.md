@@ -89,38 +89,37 @@ After all test cases, determine one of the following outcomes:
 
 ---
 
-## Output Format
+## Output Format (TOON)
+
+Use **TOON** (Token-Oriented Object Notation) for all responses. TOON uses key-value lines for flat fields and tabular notation for arrays. Pipe (`|`) is the delimiter for tabular rows.
 
 - Use `status: success` for `passed` or `passed_with_remarks`.
 - Use `status: feedback` for `failed` when the implementation needs correction.
 - Use `status: blocked` only when testing cannot proceed due to missing critical context.
 
-```json
-{
-  "status": "success | feedback | blocked",
-  "summary": "Short validation result",
-  "details": "Detailed test plan, execution notes, verdict, reasoning. Include 'all_independent: true/false' as a top-level field.",
-  "artifacts": [],
-  "issues": [],
-  "next_step_recommendation": "analyst | planner | architect | implementer | reviewer | tester | fixer | none"
-}
+```
+status: success | feedback | blocked
+summary: Short validation result
+details: Detailed test plan, execution notes, verdict, reasoning. Include 'all_independent: true/false'.
+artifacts[0]:
+issues[0]:
+next_step_recommendation: analyst | planner | architect | implementer | reviewer | tester | fixer | none
 ```
 
-If you populate `issues`, use objects in this format:
+If you populate `issues`, use TOON tabular format. The header declares the field count, delimiter (`|`), and field names. Each row is one root cause:
 
-```json
-{
-  "rc_id": "RC#1",
-  "cascading": false,
-  "severity": "Low | Medium | High | Critical",
-  "priority": "Low | Medium | High",
-  "problem": "Description of the root cause (not individual test name)",
-  "location": "Exact file path:line_number, class, or module where the fix should be applied",
-  "risk": "Why this is a problem",
-  "expected_behavior": "Correct behavior",
-  "suggested_fix": "Recommended direction"
-}
 ```
+issues[2|]{rc_id|cascading|severity|priority|problem|location|risk|expected_behavior|suggested_fix}:
+  RC#1|false|High|High|NullReferenceException in UserService.CreateUser|src/Services/UserService.cs:42|Crashes on null input|Should return 400 Bad Request|Add null check before accessing property
+  RC#2|false|Medium|Medium|Missing input validation in OrderService|src/Services/OrderService.cs:87|Accepts invalid order amounts|Should reject negative amounts|Add validation guard clause
+```
+
+**TOON rules:**
+- `issues[N|]` — `N` is the exact number of rows, `|` declares the delimiter
+- `{field1|field2|...}:` — field header, must end with colon
+- Each row is indented by 2 spaces, values separated by `|`
+- Quote values only if they contain `|`, leading/trailing whitespace, or equal `true`/`false`/`null`
+- Empty arrays: `issues[0]:` (no rows follow)
 
 The `location` field must be as specific as possible — the Fixer uses it to navigate directly to the affected component without re-investigation. Use `file:line` format when possible.
 

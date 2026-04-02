@@ -64,36 +64,41 @@ When some issues have `cascading: true`:
 
 ---
 
-## Standard agent response contract
+## Standard agent response contract (TOON)
 
-Instruct every invoked agent to return this JSON:
+All agents return responses in **TOON** (Token-Oriented Object Notation) — a compact, token-efficient format. TOON uses key-value lines for flat fields and tabular notation with pipe (`|`) delimiter for arrays.
 
-```json
-{
-  "status": "success | feedback | blocked",
-  "summary": "Short description of result",
-  "details": "Detailed explanation",
-  "artifacts": [],
-  "issues": [],
-  "next_step_recommendation": "analyst | planner | architect | implementer | reviewer | tester | fixer | none"
-}
+Standard response structure:
+
+```
+status: success | feedback | blocked
+summary: Short description of result
+details: Detailed explanation
+artifacts[0]:
+issues[0]:
+next_step_recommendation: analyst | planner | architect | implementer | reviewer | tester | fixer | none
 ```
 
-If an agent reports findings, expect `issues` entries in this format:
+If an agent reports findings, expect `issues` in TOON tabular format:
 
-```json
-{
-  "rc_id": "RC#1",
-  "cascading": false,
-  "severity": "Low | Medium | High | Critical",
-  "priority": "Low | Medium | High",
-  "problem": "Description of the issue",
-  "location": "path/to/File.cs:42",
-  "risk": "Why this is a problem",
-  "expected_behavior": "Correct behavior",
-  "suggested_fix": "Recommended direction"
-}
 ```
+issues[2|]{rc_id|cascading|severity|priority|problem|location|risk|expected_behavior|suggested_fix}:
+  RC#1|false|High|High|Description of root cause|path/to/File.cs:42|Why this is a problem|Correct behavior|Recommended direction
+  RC#2|false|Medium|Medium|Another root cause|path/to/Other.cs:15|Risk description|Expected behavior|Fix direction
+```
+
+Reviewer/Planner/Fixer issues use the same format without `rc_id` and `cascading`:
+
+```
+issues[1|]{severity|priority|problem|location|risk|expected_behavior|suggested_fix}:
+  High|High|Description of the issue|path/to/File.cs:42|Why this is a problem|Correct behavior|Recommended direction
+```
+
+**TOON parsing rules:**
+- `array[N|]` — `N` is the exact row count, `|` is the delimiter
+- `{field1|field2|...}:` — field header, must end with colon
+- Each row is indented by 2 spaces, values separated by `|`
+- Empty arrays: `array[0]:` (no rows follow)
 
 ---
 

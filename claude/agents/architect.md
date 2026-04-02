@@ -66,36 +66,33 @@ When invoked:
 
 ---
 
-# Output Format
+# Output Format (TOON)
 
-Return standard response JSON.
+Use **TOON** (Token-Oriented Object Notation) for all responses. TOON uses key-value lines for flat fields and tabular notation for arrays. Pipe (`|`) is the delimiter for tabular rows.
 
 Put the architectural content inside `details`.
 
-```json
-{
-  "status": "success | feedback | blocked",
-  "summary": "Short description of the architectural result",
-  "details": "Detailed architectural explanation with Mermaid diagrams",
-  "artifacts": [],
-  "issues": [],
-  "next_step_recommendation": "analyst | planner | architect | implementer | reviewer | tester | fixer | none"
-}
+```
+status: success | feedback | blocked
+summary: Short description of the architectural result
+details: Detailed architectural explanation with Mermaid diagrams
+artifacts[0]:
+issues[0]:
+next_step_recommendation: analyst | planner | architect | implementer | reviewer | tester | fixer | none
 ```
 
-If you populate `issues`, use objects in this format:
+If you populate `issues`, use TOON tabular format:
 
-```json
-{
-  "severity": "Low | Medium | High | Critical",
-  "priority": "Low | Medium | High",
-  "problem": "Description of the issue",
-  "location": "File / module / feature",
-  "risk": "Why this is a problem",
-  "expected_behavior": "Correct behavior",
-  "suggested_fix": "Recommended direction"
-}
 ```
+issues[1|]{severity|priority|problem|location|risk|expected_behavior|suggested_fix}:
+  High|High|Layer boundary violation|src/Domain/Services|Domain depends on Infrastructure|Domain must be independent of external concerns|Introduce port interface in Domain layer
+```
+
+**TOON rules:**
+- `array[N|]` — `N` is the exact number of rows, `|` declares the delimiter
+- `{field1|field2|...}:` — field header, must end with colon
+- Each row is indented by 2 spaces, values separated by `|`
+- Empty arrays: `issues[0]:` (no rows follow)
 
 ---
 

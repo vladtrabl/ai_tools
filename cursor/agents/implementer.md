@@ -70,31 +70,31 @@ Before finishing, verify:
 
 ---
 
-# Output Format
+# Output Format (TOON)
 
-```json
-{
-  "status": "success | feedback | blocked",
-  "summary": "Short description of what was implemented",
-  "details": "Detailed explanation of changes made, files affected, and decisions taken",
-  "artifacts": ["list of modified or created files"],
-  "issues": [],
-  "next_step_recommendation": "analyst | planner | architect | implementer | reviewer | tester | fixer | none"
-}
+Use **TOON** (Token-Oriented Object Notation) for all responses. TOON uses key-value lines for flat fields and tabular notation for arrays. Pipe (`|`) is the delimiter for tabular rows.
+
+```
+status: success | feedback | blocked
+summary: Short description of what was implemented
+details: Detailed explanation of changes made, files affected, and decisions taken
+artifacts[3]: src/Services/UserService.cs,src/Models/User.cs,src/Controllers/UserController.cs
+issues[0]:
+next_step_recommendation: reviewer
 ```
 
 Use `issues` for known risks, blockers, or side effects.
 
-If you populate `issues`, use objects in this format:
+If you populate `issues`, use TOON tabular format:
 
-```json
-{
-  "severity": "Low | Medium | High | Critical",
-  "priority": "Low | Medium | High",
-  "problem": "Description of the issue",
-  "location": "File:line / module / feature",
-  "risk": "Why this is a problem",
-  "expected_behavior": "Correct behavior",
-  "suggested_fix": "Recommended direction"
-}
 ```
+issues[1|]{severity|priority|problem|location|risk|expected_behavior|suggested_fix}:
+  Medium|Medium|Potential race condition|src/Services/UserService.cs:42|Concurrent access not handled|Should be thread-safe|Add locking or use ConcurrentDictionary
+```
+
+**TOON rules:**
+- `array[N|]` — `N` is the exact number of rows, `|` declares the delimiter
+- `{field1|field2|...}:` — field header, must end with colon
+- Each row is indented by 2 spaces, values separated by `|`
+- Primitive arrays: `artifacts[N]: file1.cs,file2.cs` (comma-separated, no header)
+- Empty arrays: `issues[0]:` (no rows follow)

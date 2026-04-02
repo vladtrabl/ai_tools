@@ -59,17 +59,17 @@ Do NOT re-run the full diagnostic from scratch. The tester already identified th
 
 ---
 
-## Output Format
+## Output Format (TOON)
 
-```json
-{
-  "status": "success | feedback | blocked",
-  "summary": "Short description of result",
-  "details": "Issue summary, root cause, fix description, changed components",
-  "artifacts": [],
-  "issues": [],
-  "next_step_recommendation": "analyst | planner | architect | implementer | reviewer | tester | fixer | none"
-}
+Use **TOON** (Token-Oriented Object Notation) for all responses. TOON uses key-value lines for flat fields and tabular notation for arrays. Pipe (`|`) is the delimiter for tabular rows.
+
+```
+status: success | feedback | blocked
+summary: Short description of result
+details: Issue summary, root cause, fix description, changed components
+artifacts[1]: src/Services/UserService.cs
+issues[0]:
+next_step_recommendation: tester
 ```
 
 ### Status meaning for Fixer
@@ -80,19 +80,19 @@ Do NOT re-run the full diagnostic from scratch. The tester already identified th
 | `feedback` | This specific fix attempt failed — the root cause was not resolved |
 | `blocked` | Fix cannot be safely applied without additional context, architectural decisions, OR multiple root causes were received |
 
-If you populate `issues`, use objects in this format:
+If you populate `issues`, use TOON tabular format:
 
-```json
-{
-  "severity": "Low | Medium | High | Critical",
-  "priority": "Low | Medium | High",
-  "problem": "Description of the issue",
-  "location": "File:line / module / feature",
-  "risk": "Why this is a problem",
-  "expected_behavior": "Correct behavior",
-  "suggested_fix": "Recommended direction"
-}
 ```
+issues[1|]{severity|priority|problem|location|risk|expected_behavior|suggested_fix}:
+  High|High|Fix introduced a regression|src/Services/UserService.cs:50|New null check breaks existing callers|Should preserve backward compatibility|Use default value instead of throwing
+```
+
+**TOON rules:**
+- `array[N|]` — `N` is the exact number of rows, `|` declares the delimiter
+- `{field1|field2|...}:` — field header, must end with colon
+- Each row is indented by 2 spaces, values separated by `|`
+- Quote values only if they contain `|`, leading/trailing whitespace, or equal `true`/`false`/`null`
+- Empty arrays: `issues[0]:` (no rows follow)
 
 ---
 

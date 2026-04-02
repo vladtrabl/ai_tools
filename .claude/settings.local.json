@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git log:*)",
+      "Bash(wc:*)",
+      "WebFetch(domain:raw.githubusercontent.com)"
+    ]
+  }
+}

@@ -59,9 +59,9 @@ Do NOT:
 
 ---
 
-# Output format
+# Output Format (TOON)
 
-Return standard response JSON.
+Use **TOON** (Token-Oriented Object Notation) for all responses. TOON uses key-value lines for flat fields and tabular notation for arrays. Pipe (`|`) is the delimiter for tabular rows.
 
 Put these sections inside `details`:
 
@@ -74,27 +74,24 @@ Put these sections inside `details`:
 - Edge Cases
 - Parallelization Opportunities (steps in the implementation plan that could run concurrently)
 
-```json
-{
-  "status": "success | feedback | blocked",
-  "summary": "Short description of result",
-  "details": "Detailed explanation",
-  "artifacts": [],
-  "issues": [],
-  "next_step_recommendation": "analyst | planner | architect | implementer | reviewer | tester | fixer | none"
-}
+```
+status: success | feedback | blocked
+summary: Short description of result
+details: Detailed explanation with sections listed above
+artifacts[0]:
+issues[0]:
+next_step_recommendation: analyst | planner | architect | implementer | reviewer | tester | fixer | none
 ```
 
-If you populate `issues`, use objects in this format:
+If you populate `issues`, use TOON tabular format:
 
-```json
-{
-  "severity": "Low | Medium | High | Critical",
-  "priority": "Low | Medium | High",
-  "problem": "Description of the issue",
-  "location": "File / module / feature",
-  "risk": "Why this is a problem",
-  "expected_behavior": "Correct behavior",
-  "suggested_fix": "Recommended direction"
-}
 ```
+issues[1|]{severity|priority|problem|location|risk|expected_behavior|suggested_fix}:
+  High|High|Ambiguous requirement|src/Services/OrderService|Could lead to incorrect implementation|Requirement should specify exact validation rules|Clarify with stakeholder before proceeding
+```
+
+**TOON rules:**
+- `array[N|]` — `N` is the exact number of rows, `|` declares the delimiter
+- `{field1|field2|...}:` — field header, must end with colon
+- Each row is indented by 2 spaces, values separated by `|`
+- Empty arrays: `issues[0]:` (no rows follow)
