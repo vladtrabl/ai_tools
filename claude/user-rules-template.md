@@ -1,53 +1,105 @@
 # User Rules Template for Claude Code
 
 > Copy this file to `~/.claude/CLAUDE.md` to apply these rules across all projects.
+> For project-specific rules, copy individual files from `claude/rules/` to `.claude/rules/` in your project.
 
-## Thinking & Planning
+## Available Rules (auto-loaded from `.claude/rules/`)
 
-- For non-trivial tasks, outline a short plan before implementing.
-- Before architectural changes, briefly explain the reasoning.
-- Prefer correctness over speed.
-- If a task affects multiple layers (UI/API/DB), think through the full flow before editing.
+| File | Purpose |
+|---|---|
+| `rules/workflow.md` | Planning, agent dispatch, loop limits, user checkpoints |
+| `rules/code-quality.md` | Code conventions, safety, what NOT to do |
+| `rules/git-operations.md` | Commit, PR, branch safety rules |
+| `rules/testing.md` | Test principles, structure, when tests fail |
+| `rules/architecture.md` | Layer boundaries, dependencies, data flow |
 
-## Failure Handling
+## Setup Instructions
 
-- If a task fails 3 times, stop and explain the root cause with alternative approaches.
-- Do not retry blindly or loop through minor variations.
+### Option A: User-level (all projects)
 
-## Things to Avoid
+```bash
+# Copy agents
+cp claude/agents/*.md ~/.claude/agents/
 
-- Do not refactor unless explicitly requested.
-- Do not rewrite unrelated parts of the codebase.
-- Do not change naming conventions without reason.
-- Do not generate large summaries after each step.
+# Copy skills
+cp -r claude/skills/* ~/.claude/skills/
 
-## Documentation & Context
+# Copy rules (these auto-load when present)
+mkdir -p ~/.claude/rules
+cp claude/rules/*.md ~/.claude/rules/
 
-- Use context7 to access library documentation; prefer official docs over assumptions.
-- If API behavior is unclear, check documentation first.
-- Respect existing project structure and architecture.
+# Copy this file as user-level CLAUDE.md
+cp claude/user-rules-template.md ~/.claude/CLAUDE.md
+```
 
-## Code Quality
+### Option B: Project-level (single project)
 
-- Follow existing project conventions.
-- Avoid overengineering.
-- Keep functions small and cohesive.
-- Avoid magic numbers.
-- Add comments only where logic is non-obvious.
+```bash
+# Copy agents
+cp claude/agents/*.md .claude/agents/
 
-## Safety & Stability
+# Copy skills
+cp -r claude/skills/* .claude/skills/
 
-- Do not introduce breaking changes without warning.
-- Highlight risky changes and mention possible side effects.
-- Preserve backward compatibility unless explicitly told otherwise.
+# Copy rules
+mkdir -p .claude/rules
+cp claude/rules/*.md .claude/rules/
 
-## Efficiency
+# Copy as project-level CLAUDE.md
+cp claude/user-rules-template.md CLAUDE.md
+```
 
-- Keep responses concise; avoid repeating previously stated information.
-- Preserve conversation context.
+### Option C: Cherry-pick
 
-## Architecture Awareness
+Copy only the rules and agents you need. Each file is self-contained.
 
-- Respect clean architecture boundaries; do not mix layers.
-- Avoid tight coupling; prefer dependency injection over static usage.
-- Think about scalability when touching infrastructure.
+## Core Principles
+
+- **Simplicity First** — Make every change as simple as possible. Impact minimal code.
+- **No Laziness** — Find root causes. No temporary fixes. Senior developer standards.
+- **Minimal Impact** — Changes should only touch what is necessary.
+
+## Agent System
+
+This project provides 7 specialized agents with TOON output format:
+
+| Agent | Model | Role | Restrictions |
+|---|---|---|---|
+| analyst | opus | Requirements, risks, edge cases | Read-only |
+| architect | opus | System design, diagrams | Read-only |
+| planner | opus | Task decomposition | Read-only, no Bash |
+| reviewer | opus | Code review | Read-only |
+| tester | haiku | Test execution, validation | Read-only |
+| implementer | sonnet | Code implementation | Full access |
+| fixer | sonnet | Targeted bug fixes | Full access |
+
+## Agent Response Format (TOON)
+
+All agents return responses in TOON (Token-Oriented Object Notation) — a compact, token-efficient format:
+
+```
+status: success | feedback | blocked
+summary: Short description
+details: Detailed explanation
+artifacts[0]:
+issues[0]:
+next_step_recommendation: none
+```
+
+Issues use pipe-delimited tabular format:
+
+```
+issues[N|]{severity|priority|problem|location|risk|expected_behavior|suggested_fix}:
+  High|High|Description|path/to/File.cs:42|Risk|Expected|Fix direction
+```
+
+## Customization
+
+Override rules per project by creating `.claude/rules/<name>.md` in the project root. Project-level rules take precedence over user-level rules with the same name.
+
+Add project-specific rules for:
+- Language/framework conventions (PHP strict_types, C# nullable, Python type hints)
+- Docker/container commands
+- CI/CD pipeline steps
+- MCP server integration
+- Domain-specific patterns
