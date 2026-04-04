@@ -235,6 +235,42 @@ async function selectTemplates() {
 }
 
 // ---------------------------------------------------------------------------
+// Hooks discovery & selection (Claude only)
+// ---------------------------------------------------------------------------
+
+const HOOK_FRIENDLY_NAMES = {
+  "git-safety.sh": "Git Safety Guard (blocks force push, reset --hard)",
+  "destructive-guard.sh": "Destructive Command Guard (blocks rm -rf, drop table)",
+  "agent-audit.sh": "Agent Audit Log (logs agent executions)",
+  "commit-msg-check.sh": "Commit Message Validation (imperative mood, length)",
+  "file-write-guard.sh": "File Write Guard (blocks .env, credentials)",
+  "compact-reinject.sh": "Post-Compact Context Reinjection (restores TOON rules)",
+};
+
+function discoverHooks() {
+  const hooksDir = path.join(REPO_ROOT, "claude", "hooks");
+  return listFiles(hooksDir, (n) => n.endsWith(".sh")).map((f) =>
+    path.basename(f)
+  );
+}
+
+async function selectHooks() {
+  const hooks = discoverHooks();
+  if (hooks.length === 0) return [];
+
+  const selected = await checkbox({
+    message: "Select hooks to install:",
+    choices: hooks.map((h) => ({
+      name: HOOK_FRIENDLY_NAMES[h] || h,
+      value: h,
+      checked: true,
+    })),
+  });
+
+  return selected;
+}
+
+// ---------------------------------------------------------------------------
 // Build copy plan
 // ---------------------------------------------------------------------------
 
@@ -242,12 +278,12 @@ function buildPlan(
   tool,
   level,
   components,
-  { agents = [], skills = [], rules = [], templates = [] }
+  { agents = [], skills = [], rules = [], templates = [], hooks = [] }
 ) {
   const src = sourceDir(tool);
   const dest = destinationBase(tool, level);
   const tasks = [];
-  const counts = { agents: 0, skills: 0, rules: 0, templates: 0 };
+  const counts = { agents: 0, skills: 0, rules: 0, templates: 0, hooks: 0 };
 
   if (components.includes("agents")) {
     const agentDir = path.join(src, "agents");
@@ -312,6 +348,32 @@ function buildPlan(
         });
         counts.templates++;
       }
+    }
+  }
+
+  if (components.includes("hooks") && tool === "claude") {
+    const hooksSrc = path.join(REPO_ROOT, "claude", "hooks");
+    for (const hookName of hooks) {
+      const filePath = path.join(hooksSrc, hookName);
+      if (fs.existsSync(filePath)) {
+        tasks.push({
+          src: filePath,
+          dest: path.join(dest, "hooks", hookName),
+          category: "hooks",
+          label: `hooks/${hookName}`,
+        });
+        counts.hooks++;
+      }
+    }
+    // Also copy settings-template.json for later merge
+    const templatePath = path.join(hooksSrc, "settings-template.json");
+    if (fs.existsSync(templatePath)) {
+      tasks.push({
+        src: templatePath,
+        dest: path.join(dest, "hooks", "settings-template.json"),
+        category: "hooks",
+        label: "hooks/settings-template.json",
+      });
     }
   }
 
@@ -392,6 +454,7 @@ function showConfirmation(tasks) {
     skills: "Skills",
     rules: "Rules",
     templates: "Templates",
+    hooks: "Hooks",
   };
 
   for (const [category, items] of grouped) {
@@ -471,6 +534,8 @@ function showSummary(tools, level, counts, copied, errors) {
     console.log(chalk.green(`  Rules:      ${counts.rules}`));
   if (counts.templates > 0)
     console.log(chalk.green(`  Templates:  ${counts.templates}`));
+  if (counts.hooks > 0)
+    console.log(chalk.green(`  Hooks:      ${counts.hooks}`));
 
   if (errors > 0) {
     console.log(chalk.red(`  Errors:     ${errors}`));
@@ -479,6 +544,94 @@ function showSummary(tools, level, counts, copied, errors) {
   console.log();
   console.log(chalk.green.bold("  Done!"));
   console.log();
+}
+
+// ---------------------------------------------------------------------------
+// Hooks settings merge
+// ---------------------------------------------------------------------------
+
+function mergeHooksSettings(dest, level, selectedHooks) {
+  const templatePath = path.join(dest, "hooks", "settings-template.json");
+  if (!fs.existsSync(templatePath)) return false;
+
+  const settingsPath = path.join(dest, "settings.json");
+  const hooksDir = path.join(dest, "hooks");
+
+  // Resolve absolute hooks directory path
+  let absoluteHooksDir;
+  if (level === "user") {
+    absoluteHooksDir = hooksDir;
+  } else {
+    absoluteHooksDir = path.resolve(hooksDir);
+  }
+  // Normalize to forward slashes for bash compatibility
+  const hooksPathForShell = absoluteHooksDir.replace(/\\/g, "/");
+
+  // Read template and replace $HOOKS_DIR placeholder
+  let templateContent = fs.readFileSync(templatePath, "utf-8");
+  templateContent = templateContent.replace(/\$HOOKS_DIR/g, hooksPathForShell);
+  const templateData = JSON.parse(templateContent);
+
+  // Filter template to only include hooks for selected scripts
+  for (const [eventName, entries] of Object.entries(templateData.hooks)) {
+    for (const entry of entries) {
+      entry.hooks = (entry.hooks || []).filter((h) => {
+        const cmd = h.command || "";
+        return selectedHooks.some((s) => cmd.includes(s));
+      });
+    }
+    // Remove entries with no hooks left
+    templateData.hooks[eventName] = entries.filter(
+      (e) => (e.hooks || []).length > 0
+    );
+  }
+  // Remove events with no entries left
+  for (const [eventName, entries] of Object.entries(templateData.hooks)) {
+    if (entries.length === 0) delete templateData.hooks[eventName];
+  }
+
+  // Read existing settings or start fresh
+  let settings = {};
+  if (fs.existsSync(settingsPath)) {
+    try {
+      settings = JSON.parse(fs.readFileSync(settingsPath, "utf-8"));
+    } catch {
+      settings = {};
+    }
+  }
+
+  // Deep merge hooks configuration
+  if (!settings.hooks) {
+    settings.hooks = templateData.hooks;
+  } else {
+    for (const [eventName, newEntries] of Object.entries(templateData.hooks)) {
+      if (!settings.hooks[eventName]) {
+        settings.hooks[eventName] = newEntries;
+        continue;
+      }
+
+      // Append new matcher groups, skip duplicates
+      for (const newEntry of newEntries) {
+        const isDuplicate = settings.hooks[eventName].some((existing) => {
+          if ((existing.matcher || "") !== (newEntry.matcher || "")) return false;
+          // Check if all hook commands already exist
+          const existingCmds = (existing.hooks || []).map((h) => h.command);
+          return (newEntry.hooks || []).every((h) =>
+            existingCmds.includes(h.command)
+          );
+        });
+
+        if (!isDuplicate) {
+          settings.hooks[eventName].push(newEntry);
+        }
+      }
+    }
+  }
+
+  // Write merged settings
+  ensureDir(path.dirname(settingsPath));
+  fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2), "utf-8");
+  return true;
 }
 
 // ---------------------------------------------------------------------------
@@ -516,14 +669,26 @@ async function main() {
   });
 
   // 3. Select components (all main components checked by default)
+  const showHooks = toolChoice === "claude" || toolChoice === "both";
+
+  const componentChoices = [
+    { name: "Agents", value: "agents", checked: true },
+    { name: "Skills", value: "skills", checked: true },
+    { name: "Rules (universal)", value: "rules", checked: true },
+    { name: "Rule Templates (stack-specific)", value: "templates", checked: false },
+  ];
+
+  if (showHooks) {
+    componentChoices.push({
+      name: "Hooks (git safety, destructive guard, audit log, ...)",
+      value: "hooks",
+      checked: false,
+    });
+  }
+
   const components = await checkbox({
     message: "Select components to install:",
-    choices: [
-      { name: "Agents", value: "agents", checked: true },
-      { name: "Skills", value: "skills", checked: true },
-      { name: "Rules (universal)", value: "rules", checked: true },
-      { name: "Rule Templates (stack-specific)", value: "templates", checked: false },
-    ],
+    choices: componentChoices,
     required: true,
   });
 
@@ -549,12 +714,18 @@ async function main() {
     selectedTemplates = await selectTemplates();
   }
 
+  let selectedHooks = [];
+  if (components.includes("hooks")) {
+    selectedHooks = await selectHooks();
+  }
+
   // 5. Build plans for all selected tools
   const selections = {
     agents: selectedAgents,
     skills: selectedSkills,
     rules: selectedRules,
     templates: selectedTemplates,
+    hooks: selectedHooks,
   };
 
   const allTasks = [];
@@ -563,6 +734,7 @@ async function main() {
     skills: 0,
     rules: 0,
     templates: 0,
+    hooks: 0,
   };
 
   for (const tool of tools) {
@@ -612,6 +784,7 @@ async function main() {
     skills: 0,
     rules: 0,
     templates: 0,
+    hooks: 0,
   };
   for (const t of resolvedTasks) {
     finalCounts[t.category]++;
@@ -620,7 +793,18 @@ async function main() {
   // 8. Execute
   const { copied, errors } = await executePlan(resolvedTasks);
 
-  // 9. Summary
+  // 9. Merge hooks settings into settings.json (Claude only)
+  if (components.includes("hooks") && finalCounts.hooks > 0) {
+    const claudeDest = destinationBase("claude", level);
+    const merged = mergeHooksSettings(claudeDest, level, selections.hooks);
+    if (merged) {
+      console.log(
+        chalk.green("  Hooks configuration merged into settings.json")
+      );
+    }
+  }
+
+  // 10. Summary
   showSummary(tools, level, finalCounts, copied, errors);
 }
 
