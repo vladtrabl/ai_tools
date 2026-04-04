@@ -13,6 +13,7 @@ A template library of markdown-based configurations that define specialized agen
 - 5 universal rules (workflow, code quality, git operations, testing, architecture)
 - 4 stack-specific rule templates (.NET, Laravel, Node.js, Python)
 - TOON output format for token-efficient agent responses
+- 6 safety and productivity hooks (git guard, destructive command guard, audit log, commit validation, file write guard, context reinjection)
 - Interactive CLI installer for quick setup
 
 ## Quick Start
@@ -37,7 +38,6 @@ cp claude/agents/*.md ~/.claude/agents/
 cp -r claude/skills/* ~/.claude/skills/
 mkdir -p ~/.claude/rules
 cp claude/rules/*.md ~/.claude/rules/
-cp claude/user-rules-template.md ~/.claude/CLAUDE.md
 ```
 
 **Cursor — user-level (all projects):**
@@ -57,6 +57,7 @@ For project-level installation, replace `~/.<tool>/` with `.<tool>/` in your pro
 claude/
   agents/              # 7 specialist agents
   commands/            # implement.md (thin dispatcher)
+  hooks/               # 6 hook scripts + settings template
   rules/               # 5 universal rules
     templates/         # Stack-specific: dotnet, laravel, nodejs, python
   skills/              # mr-review, subagent-feature-implementation, userstory-to-features
@@ -126,6 +127,21 @@ Key constraints: one root cause per fixer invocation, max 3 retry loops per issu
 - `laravel.md` — Laravel / PHP conventions
 - `nodejs.md` — Node.js / TypeScript conventions
 - `python.md` — Python conventions
+
+## Hooks (Claude Code only)
+
+Optional hooks that integrate into Claude Code's event system. Install via the CLI installer (select "Hooks" component).
+
+| Hook | Event | Purpose |
+|---|---|---|
+| `git-safety.sh` | PreToolUse (Bash) | Blocks force push, reset --hard, checkout ., clean -f |
+| `destructive-guard.sh` | PreToolUse (Bash) | Blocks rm -rf, DROP TABLE, docker system prune |
+| `commit-msg-check.sh` | PreToolUse (Bash) | Validates commit message format (imperative mood, length) |
+| `file-write-guard.sh` | PreToolUse (Write/Edit) | Blocks writes to .env, credentials, key files |
+| `agent-audit.sh` | SubagentStop | Logs agent executions to `~/.claude/logs/agent-audit.jsonl` |
+| `compact-reinject.sh` | SessionStart (compact) | Reinjects TOON format and pipeline rules after context compaction |
+
+Hooks are installed per-selection — only chosen hooks are added to `settings.json`.
 
 ## Customization
 
