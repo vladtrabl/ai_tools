@@ -12,10 +12,20 @@
 | `rules/git-operations.md` | Commit, PR, branch safety rules |
 | `rules/testing.md` | Test principles, structure, when tests fail |
 | `rules/architecture.md` | Layer boundaries, dependencies, data flow |
+| `rules/templates/*.md` | Stack-specific conventions (.NET, Laravel, Node.js, Python) |
 
 ## Setup Instructions
 
-### Option A: User-level (all projects)
+### Option A: CLI Installer (recommended)
+
+```bash
+npm install
+npm run setup
+```
+
+Interactive menu lets you choose tool (Claude/Cursor/Both), level (user/project), and components.
+
+### Option B: User-level (all projects)
 
 ```bash
 # Copy agents
@@ -28,11 +38,14 @@ cp -r claude/skills/* ~/.claude/skills/
 mkdir -p ~/.claude/rules
 cp claude/rules/*.md ~/.claude/rules/
 
+# Copy stack-specific rule template (choose your stack)
+cp claude/rules/templates/dotnet.md ~/.claude/rules/
+
 # Copy this file as user-level CLAUDE.md
 cp claude/user-rules-template.md ~/.claude/CLAUDE.md
 ```
 
-### Option B: Project-level (single project)
+### Option C: Project-level (single project)
 
 ```bash
 # Copy agents
@@ -49,9 +62,13 @@ cp claude/rules/*.md .claude/rules/
 cp claude/user-rules-template.md CLAUDE.md
 ```
 
-### Option C: Cherry-pick
+### Option D: Cherry-pick
 
 Copy only the rules and agents you need. Each file is self-contained.
+
+### Cursor Setup
+
+For Cursor, use files from the `cursor/` directory instead of `claude/`. Copy to `~/.cursor/` (user-level) or `.cursor/` (project-level). Use the CLI installer for the easiest setup.
 
 ## Core Principles
 

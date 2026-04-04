@@ -11,12 +11,15 @@ This is a prompt engineering and agent orchestration framework — a template li
 ```
 claude/          # Claude-specific configurations
   agents/        # 7 specialist agent definitions (analyst, architect, fixer, implementer, planner, reviewer, tester)
-  commands/      # Orchestration routing rules (implement.md)
+  commands/      # Thin dispatcher routing to subagent-feature-implementation skill (implement.md)
+  rules/         # 5 shared rules (architecture, code-quality, git-operations, testing, workflow)
+    templates/   # 4 stack-specific rule templates (dotnet, laravel, nodejs, python)
   skills/        # 3 skills (mr-review, subagent-feature-implementation, userstory-to-features)
 
 cursor/          # Cursor-specific configurations
   agents/        # 8 agents (same 7 + manager orchestrator)
   commands/      # implement.md
+  rules/         # 5 shared rules (architecture, code-quality, git-operations, testing, workflow)
   skills/        # 4 skills (same 3 + merge-request-helper)
 ```
 
@@ -53,24 +56,26 @@ Key rules:
 
 ### Claude vs. Cursor Difference
 
-**Claude**: The chat itself acts as orchestrator; uses `subagent-feature-implementation` skill.
+**Claude**: The chat itself acts as orchestrator; `claude/commands/implement.md` is a thin dispatcher that routes to the `subagent-feature-implementation` skill.
 **Cursor**: A dedicated `manager` agent orchestrates; delegation is more explicit and structured.
 
 ### Standard Agent Response Contract
 
-Every agent returns this JSON structure:
-```json
-{
-  "status": "success | feedback | blocked",
-  "summary": "...",
-  "details": "...",
-  "artifacts": [],
-  "issues": [],
-  "next_step_recommendation": "agent_name | none"
-}
+Every agent returns responses in TOON (Token-Oriented Object Notation) — a compact, token-efficient format:
+```
+status: success | feedback | blocked
+summary: Short description of result
+details: Detailed explanation
+artifacts[0]:
+issues[0]:
+next_step_recommendation: agent_name | none
 ```
 
-Tester adds `rc_id` (RC#1, RC#2, ...) and `cascading` fields to issues for root cause tracking.
+Tester adds `rc_id` and `cascading` fields to issues. Issues use pipe-delimited tabular format for root cause tracking:
+```
+issues[N|]{rc_id|cascading|severity|priority|problem|location|risk|expected_behavior|suggested_fix}:
+  RC#1|false|High|High|Description|path/to/File.cs:42|Risk|Expected|Fix direction
+```
 
 ### Clean Architecture Constraints (embedded in all workflows)
 

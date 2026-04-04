@@ -1,11 +1,11 @@
 ---
 name: mr-review
-description: Analyzes Merge Request diffs for .NET projects and produces a structured senior-architect review (Clean Architecture, quality, risks). Use when the user asks to review an MR/PR, merge request, pull request, or uses Ukrainian phrases such as "проведи МР ревʼю", "проведи ревʼю мердж ріквесту", "ревʼю МР", "ревʼю з гілки X в Y", "review merge request", "review this PR", or specifies branches for comparison (e.g. "з гілки feature в main").
+description: Analyzes Merge Request diffs and produces a structured senior-architect review (Clean Architecture, quality, risks). Use when the user asks to review an MR/PR, merge request, pull request, or uses Ukrainian phrases such as "проведи МР ревʼю", "проведи ревʼю мердж ріквесту", "ревʼю МР", "ревʼю з гілки X в Y", "review merge request", "review this PR", or specifies branches for comparison (e.g. "з гілки feature в main").
 ---
 
 # MR Review (Merge Request Review)
 
-Conduct a code review of a merge request diff as a senior .NET architect. Produce a structured Markdown report suitable for pasting into GitLab/GitHub MR discussion.
+Conduct a code review of a merge request diff as a senior architect. Produce a structured Markdown report suitable for pasting into GitLab/GitHub MR discussion.
 
 ## When to use
 
@@ -41,7 +41,7 @@ Capture the full unified diff (and optionally the merge-base or branch names) fo
 
 If available, gather and use:
 - **mr_description**: MR/PR description or acceptance criteria (from issue, clipboard, or "paste it here").
-- **context**: Architecture notes (Clean Architecture, module boundaries, EF usage, logging, transactions, security).
+- **context**: Architecture notes (Clean Architecture, module boundaries, ORM usage, logging, transactions, security).
 - **constraints**: Team rules (naming, patterns to follow/avoid, forbidden dependencies).
 
 If something is missing, proceed with the diff only and state assumptions in the report.
@@ -54,22 +54,22 @@ Apply the following review process to the diff (and any optional inputs). Do **n
 
 - **Clean Architecture**: Domain/app/infrastructure/UI boundaries; dependency direction; forbidden references.
 - **Breaking changes**: Public API, contracts, DB schema, events.
-- **Nullability**: NRT, default/null flows, guard clauses.
-- **Async/await**: Correct usage; no sync-over-async; no deadlocks; no inappropriate fire-and-forget (ConfigureAwait only if library code).
-- **CancellationToken**: Propagation, honoring, default tokens in IO calls.
+- **Null safety**: Null checks, optional types, default/null flows, guard clauses.
+- **Async correctness**: Proper usage; no sync-over-async; no deadlocks; proper error propagation; no inappropriate fire-and-forget.
+- **Cancellation/timeout**: Propagation, honoring, resource cleanup in IO-bound and long-running calls.
 - **Exception handling**: Swallowing, rethrowing, error mapping; avoid converting all exceptions to 200 OK.
 - **Logging**: Structured logs, PII leakage, log levels, correlation.
-- **Performance**: LINQ allocations, EF Core tracking, N+1, pagination, indexes.
+- **Performance**: Unnecessary allocations, ORM/database N+1 queries, eager vs lazy loading, pagination, indexing.
 - **Security**: AuthZ/authN, input validation, injection, secrets, PII.
-- **Transactions**: EF transactions, outbox/inbox, idempotency.
+- **Transactions**: Transaction scope and isolation, outbox/inbox, idempotency.
 - **Concurrency**: Race conditions, locks, optimistic concurrency, retries.
 
 ### High-risk triggers (flag as High if present)
 
 - Domain depends on Infrastructure/UI.
 - Breaking contract changes without versioning.
-- Missing CancellationToken in IO calls.
-- EF Core N+1 or unbounded queries.
+- Missing cancellation/timeout handling in IO calls.
+- ORM N+1 or unbounded queries.
 - Logging sensitive data.
 - Transaction + event publishing without outbox/retries.
 - Swallowing exceptions or mapping all to 200 OK.
@@ -115,7 +115,18 @@ Return **only** the following Markdown. No preamble or extra commentary.
 
 ### Tone
 
-Senior reviewer: concise, precise, pragmatic. Propose changes aligned with Clean Architecture and .NET best practices.
+Senior reviewer: concise, precise, pragmatic. Propose changes aligned with Clean Architecture and language best practices.
+
+## Framework-Specific Checks (Optional)
+
+Add framework-specific checks below based on your project's tech stack. Remove or replace this section as needed.
+
+### .NET Example
+- **NRT (Nullable Reference Types):** Default/null flows, guard clauses, `?` annotations.
+- **Async/Await:** No `.Result`/`.Wait()`, correct `ConfigureAwait` usage in libraries.
+- **CancellationToken:** Propagated through all IO-bound calls.
+- **EF Core:** Tracking behavior, N+1 detection, projection vs full entity loading.
+- **Clean Architecture:** Domain has zero dependencies on Infrastructure/Presentation.
 
 ---
 
